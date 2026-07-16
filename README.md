@@ -1,58 +1,39 @@
-🔐 SSH Erişim Denetimi ve Otomatik IP Kara Listeleme
-(Fail2Ban + iptables + cron + e-posta bildirimi)
+🔐 SSH Access Control and Automated IP Blacklisting
 
-Bu proje, Linux sistemlerde SSH brute-force saldırılarını önlemek amacıyla
-Fail2Ban, iptables, cron ve e-posta bildirimi kullanılarak geliştirilmiştir.
+(Fail2Ban + iptables + cron + Email Notifications)
 
-Amaç; SSH servisine yapılan başarısız giriş denemelerini otomatik olarak tespit etmek,
-saldırgan IP adreslerini geçici olarak engellemek ve yöneticiye mail üzerinden rapor göndermektir.
+📌 Project Overview
 
-🎯 Projenin Amacı
+This project was developed to protect Linux systems against SSH brute-force attacks using Fail2Ban, iptables, cron, Bash scripting, and email notifications.
 
-SSH brute-force saldırılarını engellemek
+The system automatically detects repeated failed SSH login attempts, temporarily blocks malicious IP addresses, and sends daily email reports to the system administrator.
 
-Belirli sayıda hatalı denemeden sonra IP’yi otomatik banlamak
-
-Banlanan IP’leri iptables üzerinden yönetmek
-
-Günlük olarak banlanan IP’leri e-posta ile raporlamak
-
-
-🛠 Kullanılan Teknolojiler
-
+🎯 Project Objectives
+Prevent SSH brute-force attacks.
+Automatically ban IP addresses after a specified number of failed login attempts.
+Manage banned IP addresses using iptables.
+Generate and email daily reports of banned IP addresses to the system administrator.
+🛠 Technologies Used
 Linux
-
 Fail2Ban
-
 iptables
-
 cron
-
-msmtp (mail gönderimi)
-
-Bash Script
-
-
-
-⚙️ Sistem Mimarisi
-
-SSH Logları
+msmtp (Email Delivery)
+Bash Scripting
+⚙️ System Architecture
+SSH Logs
      ↓
-Fail2Ban
+ Fail2Ban
      ↓
-iptables (IP Ban)
+iptables (IP Blocking)
      ↓
-Bash Script (banlı-ipler.sh)
+Bash Script (banned-ips.sh)
      ↓
-cron (günlük çalıştırma)
+cron (Daily Scheduled Task)
      ↓
-E-posta Raporu
-
-
-
-🔐 Fail2Ban Yapılandırması (jail.local)
-
-Genel Ayarlar
+Email Report
+🔐 Fail2Ban Configuration (jail.local)
+Default Settings
 [DEFAULT]
 ignoreip = 127.0.0.1/8 ::1
 bantime = 180
@@ -60,17 +41,11 @@ findtime = 600
 maxretry = 3
 backend = systemd
 usedns = warn
-
-
-📌 Açıklama:
-
-3 başarısız deneme → IP banlanır
-
-10 dakika içinde sayım yapılır
-
-3 dakika boyunca erişim engellenir
-
-SSH Jail Tanımı
+Configuration Details
+IP addresses are banned after 3 failed login attempts.
+Failed attempts are counted within a 10-minute window.
+The ban duration is 3 minutes (180 seconds).
+SSH Jail Configuration
 [sshd]
 enabled = true
 port = ssh
@@ -81,47 +56,36 @@ bantime = 180
 maxretry = 3
 action = %(action_mwl)s
 
+This configuration:
 
-✔️ SSH servisi aktif olarak izlenir
-✔️ Banlanan IP’ler otomatik olarak iptables’a eklenir
-✔️ E-posta bildirimi tetiklenir
+Continuously monitors the SSH service.
+Automatically adds banned IP addresses to iptables.
+Sends an email notification whenever an IP address is banned.
+🔥 IP Blacklisting with iptables
 
-🔥 IP Kara Listeleme (iptables)
+When Fail2Ban detects an SSH brute-force attack, it automatically blocks the offending IP address using:
 
-Fail2Ban, SSH saldırısı algıladığında ilgili IP adresini otomatik olarak:
+iptables -A INPUT -s <IP_ADDRESS> -j DROP
+📜 Script for Listing Banned IP Addresses
 
-iptables -A INPUT -s <IP> -j DROP
+banned-ips.sh
 
-
-komutu ile engeller.
-
-
-📜 Banlanan IP’leri Listeleyen Script
-
-banli-ipler.sh
 #!/bin/bash
-echo "Banlanan IP adresleri:"
+echo "Banned IP Addresses:"
 sudo iptables -L -n --line-numbers | grep "DROP"
 
+This script:
 
-📌 Bu script:
+Lists all IP addresses blocked by iptables.
+Is executed automatically by cron.
+⏰ Automated Daily Reporting (cron)
+0 8 * * * /home/aysegul/banned-ips.sh | mail -s "Banned IP Addresses" admin@example.com
 
-Sistemde DROP edilen IP’leri listeler
+Every day at 08:00:
 
-cron tarafından otomatik çalıştırılır
-
-⏰ Otomatik Günlük Raporlama (cron)
-0 8 * * * /home/aysegul/banli-ipler.sh | mail -s "Banlanan IP'ler" tatliboncukodev@gmail.com
-
-
-📬 Her gün saat 08:00’de:
-
-Banlanan IP’ler listelenir
-
-Yöneticiye e-posta olarak gönderilir
-
-📧 E-posta Yapılandırması (msmtp)
-.msmtprc
+The list of banned IP addresses is generated.
+A report is emailed to the system administrator.
+📧 Email Configuration (msmtp)
 defaults
 auth on
 tls on
@@ -130,61 +94,35 @@ tls_trust_file /etc/ssl/certs/ca-certificates.crt
 account gmail
 host smtp.gmail.com
 port 587
-from tatliboncukodev@gmail.com
-user tatliboncukodev@gmail.com
-password ************
+from your-email@gmail.com
+user your-email@gmail.com
+password ********
 
 account default : gmail
 
+Gmail SMTP was used to securely deliver automated email notifications.
 
-📌 Gmail SMTP kullanılarak güvenli mail gönderimi sağlanmıştır.
+🧪 Testing and Validation (PuTTY)
 
+The project was tested using PuTTY to simulate realistic SSH brute-force attack scenarios.
 
-
-🧪 Test Ortamı ve Doğrulama (PuTTY)
-
-Projenin test sürecinde, SSH brute-force saldırılarını gerçekçi bir senaryo ile simüle etmek amacıyla PuTTY kullanılmıştır.
-
-🔹 Kullanılan Araç
-
+🔹 Test Environment
 PuTTY (Windows SSH Client)
-
-🔹 Test Senaryosu
-
-Windows işletim sistemi üzerinden PuTTY açıldı
-
-Linux sunucunun IP adresi ve SSH (22) portu girildi
-
-Aynı kullanıcı adı ile bilerek hatalı parola kullanılarak
-3 kez başarısız giriş denemesi yapıldı
-
-Fail2Ban, SSH loglarını izleyerek saldırıyı tespit etti
-
-İlgili IP adresi otomatik olarak iptables üzerinden banlandı
-
-🔹 Beklenen ve Gerçekleşen Sonuçlar
-
-✔️ 3 hatalı SSH denemesi sonrası IP adresi banlandı
-✔️ PuTTY üzerinden SSH bağlantısı kesildi
-✔️ Sunucuya erişim engellendi
-✔️ IP adresi iptables DROP kuralına eklendi
-✔️ Banlanan IP günlük rapora dahil edildi
+🔹 Test Procedure
+Opened PuTTY on a Windows machine.
+Connected to the Linux server via SSH (Port 22).
+Intentionally entered an incorrect password three consecutive times using the same username.
+Fail2Ban monitored the SSH logs and detected the repeated failed login attempts.
+The attacker's IP address was automatically added to the iptables blacklist.
 
 <img width="793" height="464" alt="resim" src="https://github.com/user-attachments/assets/a01c990c-1ba0-4cfb-9b64-3fba8f1831e4" />
 
 
-🧠 Projede Kazanımlar
-
-Linux sistemlerde SSH güvenliği
-
-Fail2Ban ile saldırı tespiti
-
-iptables ile otomatik IP engelleme
-
-cron ile zamanlanmış görevler
-
-Bash script yazımı
-
-Gerçek dünya siber güvenlik senaryosu
+🔹 Results
+✔️ The IP address was automatically banned after three failed SSH login attempts.
+✔️ The SSH connection from PuTTY was immediately terminated.
+✔️ Further access to the server was blocked.
+✔️ The IP address was added to the iptables DROP rules.
+✔️ The banned IP address was included in the daily email report.
 
 
