@@ -1,6 +1,8 @@
 🔐 SSH Access Control and Automated IP Blacklisting
 
+
 (Fail2Ban + iptables + cron + Email Notifications)
+
 
 📌 Project Overview
 
@@ -8,19 +10,27 @@ This project was developed to protect Linux systems against SSH brute-force atta
 
 The system automatically detects repeated failed SSH login attempts, temporarily blocks malicious IP addresses, and sends daily email reports to the system administrator.
 
+
 🎯 Project Objectives
+
 Prevent SSH brute-force attacks.
 Automatically ban IP addresses after a specified number of failed login attempts.
 Manage banned IP addresses using iptables.
 Generate and email daily reports of banned IP addresses to the system administrator.
+
+
 🛠 Technologies Used
+
 Linux
 Fail2Ban
 iptables
 cron
 msmtp (Email Delivery)
 Bash Scripting
+
+
 ⚙️ System Architecture
+
 SSH Logs
      ↓
  Fail2Ban
@@ -32,6 +42,8 @@ Bash Script (banned-ips.sh)
 cron (Daily Scheduled Task)
      ↓
 Email Report
+
+
 🔐 Fail2Ban Configuration (jail.local)
 Default Settings
 [DEFAULT]
